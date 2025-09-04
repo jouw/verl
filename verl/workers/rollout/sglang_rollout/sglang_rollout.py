@@ -200,15 +200,22 @@ def _extract_logprob_from_output(output):
 
 # NOTE(linjunrong): adhoc
 def _post_process_outputs(processing_class, output):
-    try:
-        # This is when processing_class is a processor
-        tokenizer = processing_class.tokenizer
-    except AttributeError:
-        try:
-            # This is when processing_class is a tokenizer
-            tokenizer = processing_class
-        except AttributeError as e:
-            raise ValueError(f"Cannot get tokenizer from processing_class {processing_class}") from e
+    # try:
+    #     # This is when processing_class is a processor
+    #     tokenizer = processing_class.tokenizer
+    # except AttributeError:
+    #     try:
+    #         # This is when processing_class is a tokenizer
+    #         tokenizer = processing_class
+    #     except AttributeError as e:
+    #         raise ValueError(f"Cannot get tokenizer from processing_class {processing_class}") from e
+
+    print(f"_post_process_outputs: processing_class={processing_class}")
+    tokenizer = processing_class
+
+    # Ensure that tokenizer is a PreTrainedTokenizer
+    if not isinstance(tokenizer, PreTrainedTokenizer):
+        raise TypeError(f"Expected a PreTrainedTokenizer, but got {type(tokenizer)}")
 
     def _map_each_response(resp):
         output_token_logprobs = resp["meta_info"]["output_token_logprobs"]
@@ -318,6 +325,7 @@ class SGLangRollout(BaseRollout):
         self._init_sampling_params(**kwargs)
 
         self.processing_class = processing_class
+        print(f"SGLangRollout: self.processing_class={self.processing_class}")
 
         try:
             # This is when processing_class is a tokenizer

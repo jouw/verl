@@ -93,6 +93,7 @@ class HFModelConfig(BaseConfig):
 
         # constuct tokenizer
         self.local_tokenizer_path = copy_to_local(self.tokenizer_path, use_shm=self.use_shm)
+        print(f"HFModelConfig: local_tokenizer_path={self.local_tokenizer_path}, trust_remote_code={self.trust_remote_code}")
         self.tokenizer = hf_tokenizer(self.local_tokenizer_path, trust_remote_code=self.trust_remote_code)
         self.processor = hf_processor(self.local_tokenizer_path, trust_remote_code=self.trust_remote_code)
 
