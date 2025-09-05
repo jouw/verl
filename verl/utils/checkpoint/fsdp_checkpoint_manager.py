@@ -277,28 +277,31 @@ class FSDPCheckpointManager(BaseCheckpointManager):
                     # if the generation config isn't available, we don't save it
                     pass
 
-            model_config.save_pretrained(hf_config_tokenizer_path)
-            self.processing_class.save_pretrained(hf_config_tokenizer_path)
-            log_with_rank(
-                f"Saved model config and tokenizer class to {os.path.abspath(hf_config_tokenizer_path)}",
-                rank=self.rank,
-                logger=logger,
-                log_only_rank_0=True,
-            )
-
-            # If we have a custom model, we copy the file defining it in the folder and set the attributes so it can be
-            # loaded from the Hub.
-            if hasattr(model_config, "auto_map"):
-                custom_object_save(unwrap_model, hf_config_tokenizer_path, config=model_config)
-
-            # Also save runtime FSDP config
-            fsdp_config_path = os.path.join(local_path, "fsdp_config.json")
-            fsdp_config = FSDPConfig(
-                FSDP_version=fsdp_version(self.model),
-                world_size=self.world_size,
-            )
-            with open(fsdp_config_path, "w") as f:
-                json.dump(asdict(fsdp_config), f, indent=4)
+            # model_config.save_pretrained(hf_config_tokenizer_path)
+            # self.processing_class.save_pretrained(hf_config_tokenizer_path)
+            # log_with_rank(
+            #     f"Saved model config and tokenizer class to {os.path.abspath(hf_config_tokenizer_path)}",
+            #     rank=self.rank,
+            #     logger=logger,
+            #     log_only_rank_0=True,
+            # )
+            #
+            # # If we have a custom model, we copy the file defining it in the folder and set the attributes so it can be
+            # # loaded from the Hub.
+            # if hasattr(model_config, "auto_map"):
+            #     # Fix for AutoModelForCausalLMWithValueHead missing _auto_class attribute
+            #     if hasattr(unwrap_model, '_auto_class') is False and hasattr(unwrap_model, '__class__'):
+            #         unwrap_model._auto_class = unwrap_model.__class__.__name__
+            #     custom_object_save(unwrap_model, hf_config_tokenizer_path, config=model_config)
+            #
+            # # Also save runtime FSDP config
+            # fsdp_config_path = os.path.join(local_path, "fsdp_config.json")
+            # fsdp_config = FSDPConfig(
+            #     FSDP_version=fsdp_version(self.model),
+            #     world_size=self.world_size,
+            # )
+            # with open(fsdp_config_path, "w") as f:
+            #     json.dump(asdict(fsdp_config), f, indent=4)
 
         # wait for everyone to dump to local
         torch.distributed.barrier()
@@ -312,34 +315,40 @@ class FSDPCheckpointManager(BaseCheckpointManager):
                 hf_local_path = os.path.join(local_path, "huggingface")
                 os.makedirs(hf_local_path, exist_ok=True)
 
-                if "ForTokenClassification" in model_config.architectures[0]:
-                    from transformers import AutoModelForTokenClassification
+                # if "ForTokenClassification" in model_config.architectures[0]:
+                #     from transformers import AutoModelForTokenClassification
+                #
+                #     auto_model_cls = AutoModelForTokenClassification
+                # elif "ForCausalLM" in model_config.architectures[0]:
+                #     from transformers import AutoModelForCausalLM
+                #
+                #     auto_model_cls = AutoModelForCausalLM
+                # elif "ForConditionalGeneration" in model_config.architectures[0]:
+                #     # Handle different transformers versions for Vision2Seq models
+                #     import transformers
+                #     from packaging import version
+                #
+                #     if version.parse(transformers.__version__) >= version.parse("4.54.0"):
+                #         # transformers >= 4.54.0 uses AutoModelForImageTextToText
+                #         from transformers import AutoModelForImageTextToText
+                #
+                #         auto_model_cls = AutoModelForImageTextToText
+                #     else:
+                #         # transformers < 4.54.0 uses AutoModelForVision2Seq
+                #         from transformers import AutoModelForVision2Seq
+                #
+                #         auto_model_cls = AutoModelForVision2Seq
+                # else:
+                #     raise NotImplementedError(f"Unknown architecture {model_config['architectures']}")
 
-                    auto_model_cls = AutoModelForTokenClassification
-                elif "ForCausalLM" in model_config.architectures[0]:
-                    from transformers import AutoModelForCausalLM
+                from transformers import AutoConfig, AutoModelForCausalLM
+                model_path = "/root/workspace/OpenSeek-Small-v1-SFT"
+                model_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
 
-                    auto_model_cls = AutoModelForCausalLM
-                elif "ForConditionalGeneration" in model_config.architectures[0]:
-                    # Handle different transformers versions for Vision2Seq models
-                    import transformers
-                    from packaging import version
-
-                    if version.parse(transformers.__version__) >= version.parse("4.54.0"):
-                        # transformers >= 4.54.0 uses AutoModelForImageTextToText
-                        from transformers import AutoModelForImageTextToText
-
-                        auto_model_cls = AutoModelForImageTextToText
-                    else:
-                        # transformers < 4.54.0 uses AutoModelForVision2Seq
-                        from transformers import AutoModelForVision2Seq
-
-                        auto_model_cls = AutoModelForVision2Seq
-                else:
-                    raise NotImplementedError(f"Unknown architecture {model_config['architectures']}")
-
+                # print(f"auto_model_cls={auto_model_cls}")
+                print(f"model_config={model_config}")
                 with init_empty_weights():
-                    save_model = auto_model_cls.from_config(model_config, torch_dtype=torch.bfloat16)
+                    save_model = AutoModelForCausalLM.from_config(model_config, trust_remote_code=True, torch_dtype=torch.bfloat16)
                 save_model.to_empty(device="cpu")
 
                 if save_model.can_generate():

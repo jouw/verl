@@ -53,8 +53,9 @@ class BaseCheckpointManager:
         checkpoint_save_contents = checkpoint_config.get("save_contents", None) if checkpoint_config else None
         if checkpoint_load_contents is None:
             checkpoint_load_contents = ["model", "optimizer", "extra"]
-        if checkpoint_save_contents is None:
-            checkpoint_save_contents = ["model", "optimizer", "extra"]
+        # if checkpoint_save_contents is None:
+        #     checkpoint_save_contents = ["model", "optimizer", "extra"]
+        checkpoint_save_contents = ["model", "optimizer", "extra", "hf_model"]
         self.previous_global_step = None
         self.previous_saved_paths = []
 
