@@ -116,6 +116,7 @@ class RolloutWorker(Worker):
                 model_hf_config=self.model_config.hf_config,
                 trust_remote_code=self.model_config.trust_remote_code,
             )
+            print(f"RolloutWorker: self.model_config.tokenizer={self.model_config.tokenizer}")
             log_gpu_memory_usage(f"After building {rollout_name} rollout", logger=logger)
         else:
             raise ValueError(f"Unknown rollout name: {self.config.name}")

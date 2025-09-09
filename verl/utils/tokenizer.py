@@ -76,6 +76,8 @@ def hf_processor(name_or_path, **kwargs):
 
     try:
         processor = AutoProcessor.from_pretrained(name_or_path, **kwargs)
+        print(f"AutoProcessor kwargs: {kwargs}")
+        print(f"AutoProcessor processor: {processor}")
     except Exception as e:
         processor = None
         # TODO(haibin.lin): try-catch should be removed after adding transformer version req to setup.py to avoid

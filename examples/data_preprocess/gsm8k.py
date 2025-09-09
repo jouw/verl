@@ -21,8 +21,6 @@ import re
 
 import datasets
 
-from verl.utils.hdfs_io import copy, makedirs
-
 
 def extract_solution(solution_str):
     solution = re.search("#### (\\-?[0-9\\.\\,]+)", solution_str)
@@ -34,7 +32,7 @@ def extract_solution(solution_str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_dir", default="~/data/gsm8k")
+    parser.add_argument("--local_dir", default="./data/gsm8k")
     parser.add_argument("--hdfs_dir", default=None)
 
     args = parser.parse_args()
@@ -87,7 +85,6 @@ if __name__ == "__main__":
     train_dataset.to_parquet(os.path.join(local_dir, "train.parquet"))
     test_dataset.to_parquet(os.path.join(local_dir, "test.parquet"))
 
-    if hdfs_dir is not None:
-        makedirs(hdfs_dir)
+    train_dataset.to_json(os.path.join(local_dir, "train.jsonl"))
+    test_dataset.to_json(os.path.join(local_dir, "test.jsonl"))
 
-        copy(src=local_dir, dst=hdfs_dir)
